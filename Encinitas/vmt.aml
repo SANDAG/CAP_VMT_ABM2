@@ -1,0 +1,392 @@
+/* VMT.AML FOR SERIES 13
+/* MCA 05/03/16 FOR USE WITH ARC 10.3 on the PC
+/*
+/* RUN THIS AML IN AN 'OUTPUT' FOLDER AFTER A SELECT ZONE ASSIGNMENT TO PRODUCE VMT.TXT
+/* MODIFIED TO INCLUDE CITY CPA's
+/* MODIFIED 12/19/14 TO WORK WITH 2 QUERIES AT ONCE
+/* MODIFIED 03/15/16 TO MERGE WITH SPEEDBIN.AML
+
+&echo &on
+&if [exists watch.txt -file] &then &s x = [delete watch.txt -file]
+&watch watch.txt
+
+/*
+/* DEFINE STUDY AREA AND STARTING HWYCOV
+/*
+&s .jur1 = 1450
+&s .hwy = T:\projects\sr13\sb\SanDiego\KMC\network_build\2050rc_adopted
+
+/*
+/* CREATE HWVMT
+/*
+&if [exists hwyvmt -cover] &then kill hwyvmt all
+import cover %.hwy%\hwycov.e00 hwyvmt
+build hwyvmt line
+additem hwyvmt.aat hwyvmt.aat uvmt 12 12 i
+additem hwyvmt.aat hwyvmt.aat szvmt1 12 12 i
+additem hwyvmt.aat hwyvmt.aat szvmt2 12 12 i
+&data arc info
+ARC
+SEL HWYVMT.AAT
+CALC TMP1 = 0
+Q STOP
+&end
+
+/* BEGIN DO LOOP TO IMPORT TIME PERIODS
+/* NEED TO MANUALLY CREATE LODTOLL*.CSV (i.e. "lodtollam2vsb.csv") OPEN HWYLOAD_*.BIN FILES IN TRANSCAD AND SAVE AS TO CSV FORMAT
+/* OPEN EACH LODTOLL*.CSV FILE IN EXCEL, PRESERVE THE FOLLOWING COLUMNS, AND SAVE AS PRN (i.e. "lodtollam2vsb.prn")
+/*   - SAVE COLUMNS A(10/0)(ID), E(7/4)(ABTM), F(7/4)(BATM), K(12/1)(ABVMT), L(12/1)(BAVMT), N(12/3)(ABVHT), O(12/3)(BAVHT), Q(6/1)(ABSPD), R(6/1)(BASPD),
+/*                  BD(8/0)(ABFLOW), BE(8/0)(BAFLOW) and BF(8/0)(FLOW)
+/*                  (Column Width / Decimal Places)
+
+&do .i &list EA AM MD PM EV
+  &s .ix = [LOCASE %.i%]
+
+  /* CREATE INFO LOOKUP TABLES FOR LODTOLL DATA
+  &if [exists INFO.VSB%.i% -info] &then &s x = [delete INFO.VSB%.i% -info]
+  &data arc info
+  ARC
+  DEFINE INFO.VSB%.i%
+  HWYVMT-ID,10,10,I
+  %.i%_ABTM,7,7,N,4
+  %.i%_BATM,7,7,N,4
+  %.i%_ABVMT,12,12,N,1
+  %.i%_BAVMT,12,12,N,1
+  %.i%_ABVHT,12,12,N,3
+  %.i%_BAVHT,12,12,N,3
+  %.i%_ABSPD,6,6,N,1
+  %.i%_BASPD,6,6,N,1
+  %.i%_ABFLOW,8,8,I
+  %.i%_BAFLOW,8,8,I
+  %.i%_FLOW,8,8,I
+  %.i%_ABBIN,4,4,I
+  %.i%_BABIN,4,4,I
+
+  GET ../lodtoll%.ix%2vsb.prn COPY ASCII
+  /* CALC %.i%_FLOW = %.i%_ABFLOW + %.i%_BAFLOW
+  SORT HWYVMT-ID
+  SEL HWYVMT.AAT
+  CALC TMP1 = 1
+  Q STOP
+  &end
+
+  /* ASSIGN BINS
+  &data arc info
+  ARC
+  SEL INFO.VSB%.i%
+  RESEL %.i%_ABSPD = 0
+  CALC %.i%_ABBIN = 0
+  ASEL
+  RESEL %.i%_ABSPD GT 0 AND %.i%_ABSPD LE 5.0
+  CALC %.i%_ABBIN = 1
+  ASEL
+  RESEL %.i%_ABSPD GT 5.0 AND %.i%_ABSPD LE 10.0
+  CALC %.i%_ABBIN = 2
+  ASEL
+  RESEL %.i%_ABSPD GT 10.0 AND %.i%_ABSPD LE 15.0
+  CALC %.i%_ABBIN = 3
+  ASEL
+  RESEL %.i%_ABSPD GT 15.0 AND %.i%_ABSPD LE 20.0
+  CALC %.i%_ABBIN = 4
+  ASEL
+  RESEL %.i%_ABSPD GT 20.0 AND %.i%_ABSPD LE 25.0
+  CALC %.i%_ABBIN = 5
+  ASEL
+  RESEL %.i%_ABSPD GT 25.0 AND %.i%_ABSPD LE 30.0
+  CALC %.i%_ABBIN = 6
+  ASEL
+  RESEL %.i%_ABSPD GT 30.0 AND %.i%_ABSPD LE 35.0
+  CALC %.i%_ABBIN = 7
+  ASEL
+  RESEL %.i%_ABSPD GT 35.0 AND %.i%_ABSPD LE 40.0
+  CALC %.i%_ABBIN = 8
+  ASEL
+  RESEL %.i%_ABSPD GT 40.0 AND %.i%_ABSPD LE 45.0
+  CALC %.i%_ABBIN = 9
+  ASEL
+  RESEL %.i%_ABSPD GT 45.0 AND %.i%_ABSPD LE 50.0
+  CALC %.i%_ABBIN = 10
+  ASEL
+  RESEL %.i%_ABSPD GT 50.0 AND %.i%_ABSPD LE 55.0
+  CALC %.i%_ABBIN = 11
+  ASEL
+  RESEL %.i%_ABSPD GT 55.0 AND %.i%_ABSPD LE 60.0
+  CALC %.i%_ABBIN = 12
+  ASEL
+  RESEL %.i%_ABSPD GT 60.0 AND %.i%_ABSPD LE 65.0
+  CALC %.i%_ABBIN = 13
+  ASEL
+  RESEL %.i%_ABSPD GT 65.0 AND %.i%_ABSPD LE 70.0
+  CALC %.i%_ABBIN = 14
+  ASEL
+  RESEL %.i%_ABSPD GT 70.0
+  CALC %.i%_ABBIN = 15
+  SEL INFO.VSB%.i%
+  RESEL %.i%_BASPD = 0
+  CALC %.i%_BABIN = 0
+  ASEL
+  RESEL %.i%_BASPD GT 0 AND %.i%_BASPD LE 5.0
+  CALC %.i%_BABIN = 1
+  ASEL
+  RESEL %.i%_BASPD GT 5.0 AND %.i%_BASPD LE 10.0
+  CALC %.i%_BABIN = 2
+  ASEL
+  RESEL %.i%_BASPD GT 10.0 AND %.i%_BASPD LE 15.0
+  CALC %.i%_BABIN = 3
+  ASEL
+  RESEL %.i%_BASPD GT 15.0 AND %.i%_BASPD LE 20.0
+  CALC %.i%_BABIN = 4
+  ASEL
+  RESEL %.i%_BASPD GT 20.0 AND %.i%_BASPD LE 25.0
+  CALC %.i%_BABIN = 5
+  ASEL
+  RESEL %.i%_BASPD GT 25.0 AND %.i%_BASPD LE 30.0
+  CALC %.i%_BABIN = 6
+  ASEL
+  RESEL %.i%_BASPD GT 30.0 AND %.i%_BASPD LE 35.0
+  CALC %.i%_BABIN = 7
+  ASEL
+  RESEL %.i%_BASPD GT 35.0 AND %.i%_BASPD LE 40.0
+  CALC %.i%_BABIN = 8
+  ASEL
+  RESEL %.i%_BASPD GT 40.0 AND %.i%_BASPD LE 45.0
+  CALC %.i%_BABIN = 9
+  ASEL
+  RESEL %.i%_BASPD GT 45.0 AND %.i%_BASPD LE 50.0
+  CALC %.i%_BABIN = 10
+  ASEL
+  RESEL %.i%_BASPD GT 50.0 AND %.i%_BASPD LE 55.0
+  CALC %.i%_BABIN = 11
+  ASEL
+  RESEL %.i%_BASPD GT 55.0 AND %.i%_BASPD LE 60.0
+  CALC %.i%_BABIN = 12
+  ASEL
+  RESEL %.i%_BASPD GT 60.0 AND %.i%_BASPD LE 65.0
+  CALC %.i%_BABIN = 13
+  ASEL
+  RESEL %.i%_BASPD GT 65.0 AND %.i%_BASPD LE 70.0
+  CALC %.i%_BABIN = 14
+  ASEL
+  RESEL %.i%_BASPD GT 70.0
+  CALC %.i%_BABIN = 15
+  Q STOP
+  &end
+&end
+/* END DO LOOP TO IMPORT TIME PERIODS
+
+/*
+/* CREATE INFO LOOKUP TABLE FOR SELECT LINK VOLUMES
+/*    - OPEN 'LOADSELK.CSV':  DELETE DIRECTIONAL COLUMNS, DELETE HEADER ROW, FIX COLUMNS (6 & 10), AND SAVE-AS 'LODSELK*.PRN' WITH * = JURISDICTION
+/* 
+
+&if [exists info.slk -info] &then &s x = [delete info.slk -info]
+&data arc info
+ARC
+DEFINE INFO.SLK
+HWYVMT-ID,6,6,I
+Q1X,10,10,I
+
+/* GET ../lodselk%.jur1%.prn COPY ASCII
+GET ../lodselk.prn COPY ASCII
+SORT HWYVMT-ID
+Q STOP
+&end
+
+/*
+/* JOIN INFO TABLES TO HWYVMT
+/*
+joinitem hwyvmt.aat INFO.SLK hwyvmt.aat hwyvmt-id # ordered
+&do .i &list EA AM MD PM EV
+  &s .ix = [LOCASE %.i%]
+  joinitem hwyvmt.aat INFO.VSB%.i% hwyvmt.aat hwyvmt-id # ordered
+  build hwyvmt line
+&end
+
+/*
+/* OVERLAY WITH JURCOV
+/*
+&if [exists hwypnt -cover] &then kill hwypnt all
+&if [exists hwyvmt2 -cover] &then kill hwyvmt2 all
+&if [exists hwyvmt2x -cover] &then kill hwyvmt2x all
+arclabel hwyvmt hwypnt left 0.1 hwyvmt-id
+build hwypnt point
+identity hwypnt T:\projects\sr13\sb\SanDiego\KMC\network_build\covs\jurcov hwyvmt2x point
+copy hwyvmt hwyvmt2
+additem hwyvmt2.aat hwyvmt2.aat jur1 4 4 i
+additem hwyvmt2.aat hwyvmt2.aat jur2 4 4 i
+additem hwyvmt2.aat hwyvmt2.aat name1 50 50 c
+additem hwyvmt2.aat hwyvmt2.aat name2 50 50 c
+&data arc info
+ARC
+SEL HWYVMT2X.PAT
+ALTER HWYVMT2X-ID,HWYVMT2-ID,,,,,,,
+SORT HWYVMT2-ID
+SEL HWYVMT2.AAT
+CALC $NM = 1
+RELATE HWYVMT2X.PAT HWYVMT2-ID ORDERED NUMERIC
+CALC JUR1 = $1JUR1
+CALC JUR2 = $1JUR2
+MOVEIT $1NAME1 TO NAME1
+MOVEIT $1NAME2 TO NAME2
+Q STOP
+&end
+
+/*
+/* CREATE SPEED BIN REPORTS
+/*
+&do .i &list EA AM MD PM EV
+  &s .ix = [LOCASE %.i%]
+
+  /* RESELECT STUDY AREA
+  &if [exists hwyvmt2sa -cover] &then kill hwyvmt2sa all
+  reselect hwyvmt2 hwyvmt2sa line
+  resel jur2 = %.jur1%
+  [unquote ' ']
+  n
+  n
+  build hwyvmt2sa line
+
+  /* PREPARE REPORT
+  &if [exists hwyvmt2%.ix%.tb1 -info] &then &s x = [delete hwyvmt2%.ix%.tb1 -info]
+  frequency hwyvmt2sa.aat hwyvmt2%.ix%.tb1
+  %.ix%_abbin
+  end
+  %.ix%_abvmt
+  %.ix%_abvht
+  end
+  &if [exists hwyvmt2%.ix%.tb2 -info] &then &s x = [delete hwyvmt2%.ix%.tb2 -info]
+  frequency hwyvmt2sa.aat hwyvmt2%.ix%.tb2
+  %.ix%_babin
+  end
+  %.ix%_bavmt
+  %.ix%_bavht
+  end
+  &if [exists %.ix%vsb1.txt -file] &then &s x = [delete %.ix%vsb1.txt -file]
+  &if [exists %.ix%vsb2.txt -file] &then &s x = [delete %.ix%vsb2.txt -file]
+  &data arc info
+  ARC
+  SEL HWYVMT2%.i%.TB1
+  RESEL %.i%_ABBIN NE 0
+  CA $COMMA-SWITCH = -1
+  OUTPUT ..\%.ix%vsb1.txt INIT
+  PRINT %.i%_ABBIN,%.i%_ABVMT,%.i%_ABVHT
+  SEL HWYVMT2%.i%.TB2
+  RESEL %.i%_BABIN NE 0
+  CA $COMMA-SWITCH = -1
+  OUTPUT ..\%.ix%vsb2.txt INIT
+  PRINT %.i%_BABIN,%.i%_BAVMT,%.i%_BAVHT
+  Q STOP
+  &end
+&end
+
+/*
+/* CALC VMT
+/*
+&data arc info
+ARC
+SEL HWYVMT2.AAT
+CALC TMP1 = 0
+CALC UVOL = ( EA_FLOW + AM_FLOW + MD_FLOW + PM_FLOW + EV_FLOW )
+CALC UVMT = ( UVOL * LENGTH ) / 5280
+CALC SZVMT1 = ( Q1X * LENGTH ) / 5280
+RESEL JUR1 = 0
+MOVEIT 'External' TO NAME1
+ASEL
+RESEL JUR1 = 14
+CALC JUR1 = JUR2
+MOVEIT NAME2 TO NAME1
+Q STOP
+&end
+
+/*
+/* CREATE REPORT
+/*
+&if [exists hwyvmtlm.tb3 -info] &then &s x = [delete hwyvmtlm.tb3 -info]
+frequency hwyvmt2.aat hwyvmt2.tb3
+name1
+ifc
+end
+uvmt
+szvmt1
+end
+&if [exists vmt1.txt -file] &then &s x = [delete vmt1.txt -file]
+&data ARC INFO
+ARC
+SEL HWYVMT2.TB3
+CALC $COMMA-SWITCH = -1
+OUTPUT ../vmt1.txt INIT
+PRINT NAME1,IFC,UVMT,SZVMT1
+Q STOP
+&end
+
+/*
+/* CALC STUDY AREA LANE MILES
+/*
+&if [exists hwyvmt2sa.tb4 -info] &then &s x = [delete hwyvmt2sa.tb4 -info]
+additem hwyvmt2sa.aat hwyvmt2sa.aat lanes 3 3 i
+additem hwyvmt2sa.aat hwyvmt2sa.aat lm 12 12 n 1
+&data arc info
+ARC
+SEL HWYVMT2SA.AAT
+CALC TMP2 = 1
+CALC LANES = ABLNA + BALNA
+CALC LM = ( LANES * LENGTH ) / 5280
+Q STOP
+&end
+frequency hwyvmt2sa.aat hwyvmt2sa.tb4
+tmp2
+end
+lm
+end
+&if [exists lm1.txt -file] &then &s x = [delete lm1.txt -file]
+&data ARC INFO
+ARC
+SEL HWYVMT2SA.TB4
+OUTPUT ../lm1.txt INIT
+PRINT LM
+Q STOP
+&end
+
+/* CREATE VMT CROSS CHECK
+/*  - REGIONWIDE - UVMT.TXT
+&if [exists hwyvmt2.tb5 -info] &then &s x = [delete hwyvmt2.tb5 -info]
+frequency hwyvmt2.aat hwyvmt2.tb5
+tmp1
+end
+uvmt
+end
+&if [exists uvmt.txt -file] &then &s x = [delete uvmt.txt -file]
+&data arc info
+ARC
+SEL HWYVMT2.TB5
+CA $COMMA-SWITCH = -1
+OUTPUT ..\uvmt.txt INIT
+PRINT UVMT
+Q STOP
+&end
+/*  - STUDYAREA - UVMTSA.TXT
+&if [exists hwyvmt2sa.tb6 -info] &then &s x = [delete hwyvmt2sa.tb6 -info]
+&data arc info
+ARC
+SEL HWYVMT2SA.AAT
+CALC UVOL = ( EA_FLOW + AM_FLOW + MD_FLOW + PM_FLOW + EV_FLOW )
+CALC UVMT = ( UVOL * LENGTH ) / 5280
+Q STOP
+&end
+frequency hwyvmt2sa.aat hwyvmt2sa.tb6
+tmp1
+end
+uvmt
+end
+&if [exists uvmtsa.txt -file] &then &s x = [delete uvmtsa.txt -file]
+&data arc info
+ARC
+SEL HWYVMT2SA.TB6
+CA $COMMA-SWITCH = -1
+OUTPUT ..\uvmtsa.txt INIT
+PRINT UVMT
+Q STOP
+&end
+&watch &off
+&echo &off
+&ret
